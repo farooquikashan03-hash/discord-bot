@@ -20,17 +20,15 @@ if (!TOKEN || !CLIENT_ID) {
   process.exit(1);
 }
 
-const coupleMap = new Map<string, number>();
-const targetMap = new Map<string, number>();
-const killMap   = new Map<string, number>();
-const killTargetMap = new Map<string, number>();
+function pairKey(a: string, b: string): string { return [a, b].sort().join("-"); }
+function times(n: number): string { return n === 1 ? "1 time" : `${n} times`; }
+function pick<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 
-function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("-");
-}
-function times(n: number): string {
-  return n === 1 ? "1 time" : `${n} times`;
-}
+const crackPairMap = new Map<string, number>();
+const crackHitMap  = new Map<string, number>();
+const killPairMap  = new Map<string, number>();
+const killHitMap   = new Map<string, number>();
+const meowMap      = new Map<string, number>();
 
 const CRACK_GIFS: string[] = [
   "https://media.giphy.com/media/kzvlq03sBvvI1Mlvo8/giphy.gif",
@@ -59,57 +57,78 @@ const CRACK_GIFS: string[] = [
 
 const KILL_GIFS: string[] = [
   "https://media.giphy.com/media/dc4UxTw2ueAbm/giphy.gif",
-  "https://media.giphy.com/media/19S5OnlvTz1KzQB2Jv/giphy.gif",
-  "https://media.giphy.com/media/2oO4qbgXCG3YY/giphy.gif",
-  "https://media.giphy.com/media/i3ikTK3ZwBy4uUH1Ot/giphy.gif",
-  "https://media.giphy.com/media/wEeIdfjuhIfwhUq2be/giphy.gif",
   "https://media.giphy.com/media/W70LEwFTHlg4ZzB7vl/giphy.gif",
+  "https://media.giphy.com/media/d3Me4gCAPyZsA/giphy.gif",
+  "https://media.giphy.com/media/wEeIdfjuhIfwhUq2be/giphy.gif",
+  "https://media.giphy.com/media/XRr6w71DZxXig/giphy.gif",
+  "https://media.giphy.com/media/19S5OnlvTz1KzQB2Jv/giphy.gif",
   "https://media.giphy.com/media/l925axfj7YFo68XH2v/giphy.gif",
   "https://media.giphy.com/media/EuYk9AYemhrDk8lh37/giphy.gif",
-  "https://media.giphy.com/media/iHaDbbesKYT6M/giphy.gif",
-  "https://media.giphy.com/media/SF84XwgZeRYfVNsLst/giphy.gif",
+  "https://media.giphy.com/media/cTWuTC4HpOaPIEQXfQ/giphy.gif",
+  "https://media.giphy.com/media/2oO4qbgXCG3YY/giphy.gif",
 ];
 
 const MEOW_GIFS: string[] = [
-  "https://media.giphy.com/media/ipxGb5koxBQWVAjmEF/giphy.gif",
-  "https://media.giphy.com/media/I9XrL9Tc1jpe/giphy.gif",
-  "https://media.giphy.com/media/Nysdvh6lajIc0/giphy.gif",
+  "https://media.giphy.com/media/l8vODjlQrm2YM/giphy.gif",
+  "https://media.giphy.com/media/zTaWhCbgHI2kxZfgmr/giphy.gif",
+  "https://media.giphy.com/media/td3fwl4I8261W/giphy.gif",
+  "https://media.giphy.com/media/l3HrmFrUiYBm0qCKgd/giphy.gif",
+  "https://media.giphy.com/media/FfbBHwOJwUCLGxodSA/giphy.gif",
+  "https://media.giphy.com/media/5jbUB088YjtGU/giphy.gif",
+  "https://media.giphy.com/media/l2QDTsTL2NhwOEAV2/giphy.gif",
+  "https://media.giphy.com/media/MBUfqO9CYEtDq/giphy.gif",
   "https://media.giphy.com/media/kQxj0pd5uunST8lv32/giphy.gif",
-  "https://media.giphy.com/media/7iizPhPPgxJHa/giphy.gif",
+  "https://media.giphy.com/media/ipxGb5koxBQWVAjmEF/giphy.gif",
   "https://media.giphy.com/media/sDudkzg2zMjDk7HKsB/giphy.gif",
-  "https://media.giphy.com/media/xqIyNcR4BUS3u/giphy.gif",
-  "https://media.giphy.com/media/jTf83ZnIn7A1dKRqvQ/giphy.gif",
-  "https://media.giphy.com/media/EIXWGdjKzTFwEXSw66/giphy.gif",
-  "https://media.giphy.com/media/U7EK2vwXv20oGmt4Ek/giphy.gif",
   "https://media.giphy.com/media/BGpx4ljIl8Jiw/giphy.gif",
-  "https://media.giphy.com/media/QbOztUtvQPQ4LVlS65/giphy.gif",
 ];
 
-function pick(pool: string[]): string {
-  return pool[Math.floor(Math.random() * pool.length)];
-}
+const KILL_LINES = [
+  (a: string, b: string) => `**⚔️ ${a} just ended ${b}'s anime arc!**`,
+  (a: string, b: string) => `**💀 ${a} deleted ${b} from existence!**`,
+  (a: string, b: string) => `**🔪 ${a} sent ${b} to the shadow realm!**`,
+  (a: string, b: string) => `**🩸 ${a} gave ${b} a one-way ticket to hell!**`,
+  (a: string, b: string) => `**☠️ ${a} just committed a war crime against ${b}!**`,
+  (a: string, b: string) => `**💥 ${a} obliterated ${b} without hesitation!**`,
+  (a: string, b: string) => `**🗡️ ${a} cut ${b} down like a final boss!**`,
+];
 
-const BASE = { integration_types: [1], contexts: [0, 1, 2] };
-const USER_OPTION = { name: "user", description: "Target user", type: 6, required: true };
+const MEOW_LINES_TARGET = [
+  (a: string, b: string) => `**🐱 ${a} meows aggressively at ${b}!**`,
+  (a: string, b: string) => `**🐾 ${a} pounces on ${b} like a cat!**`,
+  (a: string, b: string) => `**😸 ${a} nuzzles ${b} and goes meow~**`,
+  (a: string, b: string) => `**🐱 ${a} demands headpats from ${b}!**`,
+  (a: string, b: string) => `**🌸 ${a} crawls into ${b}'s lap and meows!**`,
+];
+
+const MEOW_LINES_SOLO = [
+  (a: string) => `**🐱 ${a} goes: meow~**`,
+  (a: string) => `**😺 ${a} is feeling very catlike right now.**`,
+  (a: string) => `**🐾 ${a} just unleashed a mighty meow into the void.**`,
+  (a: string) => `**🌙 ${a} meows at the moon like a true neko.**`,
+];
 
 const COMMANDS = [
   {
-    ...BASE,
     name: "crack",
     description: "Crack on another user!",
-    options: [{ ...USER_OPTION, description: "The user you want to crack on" }],
+    integration_types: [1],
+    contexts: [0, 1, 2],
+    options: [{ name: "user", description: "The user you want to crack on", type: 6, required: true }],
   },
   {
-    ...BASE,
     name: "kill",
     description: "Kill another user (anime style)!",
-    options: [{ ...USER_OPTION, description: "The user you want to kill" }],
+    integration_types: [1],
+    contexts: [0, 1, 2],
+    options: [{ name: "user", description: "The user you want to kill", type: 6, required: true }],
   },
   {
-    ...BASE,
     name: "meow",
-    description: "Meow at someone (or just meow)!",
-    options: [{ ...USER_OPTION, description: "The user to meow at", required: false }],
+    description: "Meow! At someone or just into the void.",
+    integration_types: [1],
+    contexts: [0, 1, 2],
+    options: [{ name: "user", description: "Who to meow at (optional)", type: 6, required: false }],
   },
 ];
 
@@ -118,7 +137,7 @@ async function registerCommands(): Promise<void> {
   try {
     console.log("📡  Registering commands globally…");
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: COMMANDS });
-    console.log("✅  Commands registered.");
+    console.log("✅  All commands registered.");
   } catch (err) {
     console.error("❌  Failed to register commands:", err);
   }
@@ -133,72 +152,75 @@ client.once("ready", async (c) => {
 
 client.on("interactionCreate", async (interaction: Interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName === "crack") return handleCrack(interaction);
-  if (interaction.commandName === "kill")  return handleKill(interaction);
-  if (interaction.commandName === "meow")  return handleMeow(interaction);
+  try {
+    if (interaction.commandName === "crack") await handleCrack(interaction);
+    if (interaction.commandName === "kill")  await handleKill(interaction);
+    if (interaction.commandName === "meow")  await handleMeow(interaction);
+  } catch (err) {
+    console.error("Handler error:", err);
+    if (!interaction.replied) {
+      await interaction.reply({ content: "❌  Something went wrong.", ephemeral: true });
+    }
+  }
 });
 
 async function handleCrack(interaction: ChatInputCommandInteraction): Promise<void> {
   const caller: User = interaction.user;
   const target: User = interaction.options.getUser("user", true);
-
   if (target.id === caller.id) { await interaction.reply({ content: "❌  You can't crack on yourself!", ephemeral: true }); return; }
   if (target.bot) { await interaction.reply({ content: "❌  You can't crack on a bot!", ephemeral: true }); return; }
 
   const ck = pairKey(caller.id, target.id);
-  const coupleCount = (coupleMap.get(ck) ?? 0) + 1; coupleMap.set(ck, coupleCount);
-  const globalCount = (targetMap.get(target.id) ?? 0) + 1; targetMap.set(target.id, globalCount);
+  const pairCount   = (crackPairMap.get(ck) ?? 0) + 1; crackPairMap.set(ck, pairCount);
+  const globalCount = (crackHitMap.get(target.id) ?? 0) + 1; crackHitMap.set(target.id, globalCount);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x2b2d31)
-    .setDescription(
-      `**<@${target.id}>, <@${caller.id}> is cracking on you!**\n\n` +
-      `**${caller.username}** and **${target.username}** have cracked **${times(coupleCount)}**.`
-    )
-    .setImage(pick(CRACK_GIFS))
-    .setFooter({ text: `${target.username} has been cracked ${times(globalCount)}.` });
-
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0x2b2d31)
+      .setDescription(`**<@${target.id}>, <@${caller.id}> is cracking on you!**\n\n**${caller.username}** and **${target.username}** have cracked **${times(pairCount)}**.`)
+      .setImage(pick(CRACK_GIFS))
+      .setFooter({ text: `${target.username} has been cracked ${times(globalCount)} total.` })],
+  });
 }
 
 async function handleKill(interaction: ChatInputCommandInteraction): Promise<void> {
   const caller: User = interaction.user;
   const target: User = interaction.options.getUser("user", true);
-
-  if (target.id === caller.id) { await interaction.reply({ content: "❌  You can't kill yourself!", ephemeral: true }); return; }
-  if (target.bot) { await interaction.reply({ content: "❌  You can't kill a bot!", ephemeral: true }); return; }
+  if (target.id === caller.id) { await interaction.reply({ content: "💀  You can't kill yourself — who would do the killing?", ephemeral: true }); return; }
+  if (target.bot) { await interaction.reply({ content: "🤖  Bots don't die. Nice try.", ephemeral: true }); return; }
 
   const ck = pairKey(caller.id, target.id);
-  const killCount = (killMap.get(ck) ?? 0) + 1; killMap.set(ck, killCount);
-  const totalKilled = (killTargetMap.get(target.id) ?? 0) + 1; killTargetMap.set(target.id, totalKilled);
+  const pairCount   = (killPairMap.get(ck) ?? 0) + 1; killPairMap.set(ck, pairCount);
+  const globalCount = (killHitMap.get(target.id) ?? 0) + 1; killHitMap.set(target.id, globalCount);
 
-  const embed = new EmbedBuilder()
-    .setColor(0x8b0000)
-    .setDescription(
-      `**💀 <@${caller.id}> just killed <@${target.id}>!**\n\n` +
-      `**${caller.username}** has killed **${target.username}** **${times(killCount)}**.`
-    )
-    .setImage(pick(KILL_GIFS))
-    .setFooter({ text: `${target.username} has been killed ${times(totalKilled)} total.` });
-
-  await interaction.reply({ embeds: [embed] });
+  const line = pick(KILL_LINES)(`<@${caller.id}>`, `<@${target.id}>`);
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0x8b0000)
+      .setDescription(`${line}\n\n**${caller.username}** has killed **${target.username}** **${times(pairCount)}**.`)
+      .setImage(pick(KILL_GIFS))
+      .setFooter({ text: `${target.username} has died ${times(globalCount)} in total. rip 💀` })],
+  });
 }
 
 async function handleMeow(interaction: ChatInputCommandInteraction): Promise<void> {
   const caller: User = interaction.user;
   const target: User | null = interaction.options.getUser("user");
 
-  const embed = new EmbedBuilder()
-    .setColor(0xffb6c1)
-    .setImage(pick(MEOW_GIFS));
+  const count = (meowMap.get(caller.id) ?? 0) + 1;
+  meowMap.set(caller.id, count);
 
-  if (target && target.id !== caller.id && !target.bot) {
-    embed.setDescription(`**🐱 <@${caller.id}> meows at <@${target.id}>!**`);
-  } else {
-    embed.setDescription(`**🐱 <@${caller.id}> goes meow~**`);
-  }
+  const desc = (target && target.id !== caller.id && !target.bot)
+    ? pick(MEOW_LINES_TARGET)(`<@${caller.id}>`, `<@${target.id}>`)
+    : pick(MEOW_LINES_SOLO)(`<@${caller.id}>`);
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(0xff9ecd)
+      .setDescription(desc)
+      .setImage(pick(MEOW_GIFS))
+      .setFooter({ text: `${caller.username} has meowed ${times(count)}.` })],
+  });
 }
 
 client.login(TOKEN);
