@@ -16,7 +16,7 @@ const TOKEN: string = process.env.DISCORD_TOKEN ?? "";
 const CLIENT_ID: string = process.env.CLIENT_ID ?? "";
 
 if (!TOKEN || !CLIENT_ID) {
-  console.error("❌ DISCORD_TOKEN or CLIENT_ID is missing in .env");
+  console.error("❌ DISCORD_TOKEN or CLIENT_ID is missing in environment variables.");
   process.exit(1);
 }
 
@@ -38,6 +38,7 @@ const duelPairMap = new Map<string, number>();
 const duelHitMap = new Map<string, number>();
 const meowMap = new Map<string, number>();
 
+// Clean anime romance and cuddle animations requested in chat history
 const CRACK_GIFS: string[] = [
   "https://giphy.com",
   "https://giphy.com",
@@ -45,28 +46,13 @@ const CRACK_GIFS: string[] = [
   "https://giphy.com",
   "https://giphy.com",
   "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
+  "https://giphy.com"
 ];
 
 const DUEL_GIFS: string[] = [
   "https://giphy.com",
   "https://giphy.com",
-  "https://giphy.com",
+  "https://giphy.com"
 ];
 
 const MEOW_GIFS: string[] = [
@@ -74,14 +60,7 @@ const MEOW_GIFS: string[] = [
   "https://giphy.com",
   "https://giphy.com",
   "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
-  "https://giphy.com",
+  "https://giphy.com"
 ];
 
 const DUEL_LINES = [
@@ -111,16 +90,22 @@ const COMMANDS = [
   {
     name: "crack",
     description: "Crack on another user!",
+    integration_types:, // User Install (DMs/GCs)
+    contexts:,     // Guild, DM, Group DM
     options: [{ name: "user", description: "The user you want to crack on", type: 6, required: true }],
   },
   {
     name: "duel",
     description: "Challenge another user to a friendly duel!",
+    integration_types:,
+    contexts:,
     options: [{ name: "user", description: "The user you want to duel", type: 6, required: true }],
   },
   {
     name: "meow",
     description: "Meow! At someone or just into the void.",
+    integration_types:,
+    contexts:,
     options: [{ name: "user", description: "Who to meow at (optional)", type: 6, required: false }],
   },
 ];
@@ -128,9 +113,9 @@ const COMMANDS = [
 async function registerCommands(): Promise<void> {
   const rest = new REST({ version: "10" }).setToken(TOKEN);
   try {
-    console.log("📡 Registering commands globally…");
+    console.log("📡 Registering commands globally across user contexts…");
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: COMMANDS });
-    console.log("✅ All commands registered.");
+    console.log("✅ All context commands registered completely.");
   } catch (err) {
     console.error("❌ Failed to register commands: ", err);
   }
@@ -150,9 +135,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
     if (interaction.commandName === "duel") await handleDuel(interaction);
     if (interaction.commandName === "meow") await handleMeow(interaction);
   } catch (err) {
-    console.error("❌ Handler error details:", err);
+    console.error("❌ Execution Error:", err);
     if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({ content: "❌ Something went wrong while running this command.", ephemeral: true });
+      await interaction.reply({ content: "❌ An internal execution error occurred.", ephemeral: true });
     }
   }
 });
@@ -181,7 +166,7 @@ async function handleCrack(interaction: ChatInputCommandInteraction): Promise<vo
     embeds: [
       new EmbedBuilder()
         .setColor(0x2b2d31)
-        .setDescription(`**<@${target.id}>, <@${caller.id}> is cracking on you!**\n\n**${caller.username}** and **${target.username}** have cracked **${times(pairCount)}**..`)
+        .setDescription(`<@${target.id}>, <@${caller.id}> is cracking on you!\n\n${caller.username} and ${target.username} have cracked ${times(pairCount)}.`)
         .setImage(pick(CRACK_GIFS))
         .setFooter({ text: `${target.username} has been cracked ${times(globalCount)} total.` })
     ],
@@ -197,7 +182,7 @@ async function handleDuel(interaction: ChatInputCommandInteraction): Promise<voi
     return;
   }
   if (target.bot) {
-    await interaction.reply({ content: "🤖 Bots don't participate in duels. Nice try.", ephemeral: true });
+    await interaction.reply({ content: "🤖 Bots don't participate in duels.", ephemeral: true });
     return;
   }
 
